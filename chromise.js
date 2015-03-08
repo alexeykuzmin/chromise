@@ -14,7 +14,7 @@
    * @param {*} iterable
    * @return {Array}
    */
-  var arrayFrom = function(iterable) {
+  let arrayFrom = function(iterable) {
     return Array.prototype.slice.call(iterable);
   };
 
