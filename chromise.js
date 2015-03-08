@@ -96,19 +96,8 @@
    * @private
    */
   chromise.init_ = function() {
-    chromise.checkPromiseAvailability_();
-
     let wrap = chromise.wrapObject_.bind(null, chromise);
     chromise.API_NAMESPACES_.forEach(wrap);
-  };
-
-
-  /**
-   * @private
-   */
-  chromise.checkPromiseAvailability_ = function() {
-    if (typeof global.Promise != 'function')
-      throw new Error('Chromise: Environment does not support Promises.');
   };
 
 
