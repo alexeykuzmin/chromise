@@ -122,7 +122,7 @@
         let apiEntry = apiObject[keyName];
         let entryType = typeof apiEntry;
 
-        if (entryType == 'function')
+        if (entryType == 'function' && !wrapGuy.isConstructor_(keyName))
           wrapGuy.wrapMethod_(exportTo, apiObject, keyName);
         else if (entryType == 'object' && !wrapGuy.isApiEvent_(apiEntry))
           wrapGuy.wrapObject_(exportTo[keyName] = {}, apiEntry);
@@ -140,13 +140,9 @@
      */
     wrapMethod_(exportTo, apiObject, methodName) {
       let originalMethod = apiObject[methodName];
-      let wrappedMethod = wrapGuy.isConstructor_(methodName) ?
-          originalMethod :
-          function() {
-            return new ApiCall(apiObject, originalMethod, arguments);
-          };
-
-      exportTo[methodName] = wrappedMethod;
+      exportTo[methodName] = function() {
+        return new ApiCall(apiObject, originalMethod, arguments);
+      };;
     }
   };
 
