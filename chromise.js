@@ -100,14 +100,14 @@
     },
 
     /**
-     * Returns true if function with name |methodName| looks like constructor,
+     * Returns true if function with given name looks like constructor,
      * returns false otherwise.
-     * @param {string} methodName
+     * @param {string} functionName
      * @return {boolean}
      * @private
      */
-    isConstructor_(methodName) {
-      let firstLetter = methodName[0];
+    isConstructor_(functionName) {
+      let firstLetter = functionName[0];
       return firstLetter == firstLetter.toUpperCase();
     },
 
