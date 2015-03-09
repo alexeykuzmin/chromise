@@ -66,9 +66,9 @@
      * @return {Promise}
      */
     wait() {
-      var context = this.context_;
+      let context = this.context_;
       let method = this.method_;
-      var callArguments = arrayFrom(this.callArguments_);
+      let callArguments = arrayFrom(this.callArguments_);
 
       return new Promise(function(resolve, reject) {
         let callback = ApiCall.processResponse_.bind(null, resolve, reject);
