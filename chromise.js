@@ -142,7 +142,7 @@
       let originalMethod = apiObject[methodName];
       exportTo[methodName] = function() {
         return new ApiCall(apiObject, originalMethod, arguments);
-      };;
+      };
     }
   };
 
