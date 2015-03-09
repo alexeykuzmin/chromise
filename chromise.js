@@ -82,10 +82,10 @@
   let wrapGuy = {
     /**
      * @param {!Object} api API object to wrap.
-     * @param {!Object} exportTo
+     * @return {!Object}
      */
-    wrapApi(api, exportTo) {
-      wrapGuy.wrapObject_(exportTo, api);
+    wrapApi(api) {
+      return wrapGuy.wrapObject_(api);
     },
 
     /**
@@ -112,47 +112,61 @@
     },
 
     /**
-     * Adds all fields of |apiObject| to |exportTo| object.
-     * @param {!Object} exportTo
+     * Wraps API object.
      * @param {!Object} apiObject
+     * @return {!Object}
      * @private
      */
-    wrapObject_(exportTo, apiObject) {
-      Object.keys(apiObject).forEach(function(keyName) {
-        let apiEntry = apiObject[keyName];
-        let entryType = typeof apiEntry;
+    wrapObject_(apiObject) {
+      let wrappedObject = {};
 
-        if (entryType == 'function' && !wrapGuy.isConstructor_(keyName))
-          wrapGuy.wrapMethod_(exportTo, apiObject, keyName);
-        else if (entryType == 'object' && !wrapGuy.isApiEvent_(apiEntry))
-          wrapGuy.wrapObject_(exportTo[keyName] = {}, apiEntry);
-        else
-          exportTo[keyName] = apiEntry;
-      });
+      for (let keyName of Object.keys(apiObject)) {
+        wrappedObject[keyName] = wrapGuy.wrapObjectField_(apiObject, keyName);
+      }
+
+      return wrappedObject;
     },
 
     /**
-     * Adds new method to |exportTo| object with |methodName| name.
-     * @param {!Object} exportTo
+     * Wraps single object field.
      * @param {!Object} apiObject
-     * @param {string} methodName
+     * @param {string} keyName
+     * @return {?}
      * @private
      */
-    wrapMethod_(exportTo, apiObject, methodName) {
+    wrapObjectField_(apiObject, keyName) {
+      let apiEntry = apiObject[keyName];
+      let entryType = typeof apiEntry;
+
+      if (entryType == 'function' && !wrapGuy.isConstructor_(keyName))
+        return wrapGuy.wrapMethod_(apiObject, keyName);
+      else if (entryType == 'object' && !wrapGuy.isApiEvent_(apiEntry))
+        return wrapGuy.wrapObject_(apiEntry);
+      else
+        return apiEntry;
+    },
+
+    /**
+     * Wraps API method.
+     * @param {!Object} apiObject
+     * @param {string} methodName
+     * @return {!Function}
+     * @private
+     */
+    wrapMethod_(apiObject, methodName) {
       let originalMethod = apiObject[methodName];
-      exportTo[methodName] = function() {
+      return function() {
         return new ApiCall(apiObject, originalMethod, arguments);
       };
     }
   };
 
 
-  let chromise = {};
+  let chromise = wrapGuy.wrapApi(global.chrome);
   chromise._ = {
     ApiCall,
     wrapGuy
   };
-  wrapGuy.wrapApi(global.chrome, chromise);
 
 
   global.chromise = chromise;
