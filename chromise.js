@@ -139,7 +139,7 @@
       let entryType = typeof apiEntry;
 
       if (entryType == 'function' && !wrapGuy.isConstructor_(keyName))
-        return wrapGuy.wrapMethod_(apiObject, keyName);
+        return wrapGuy.wrapMethod_(apiObject, apiEntry);
       else if (entryType == 'object' && !wrapGuy.isApiEvent_(apiEntry))
         return wrapGuy.wrapObject_(apiEntry);
       else
@@ -149,12 +149,11 @@
     /**
      * Wraps API method.
      * @param {!Object} apiObject
-     * @param {string} methodName
+     * @param {!Function} originalMethod
      * @return {!Function}
      * @private
      */
-    wrapMethod_(apiObject, methodName) {
-      let originalMethod = apiObject[methodName];
+    wrapMethod_(apiObject, originalMethod) {
       return function() {
         return new ApiCall(apiObject, originalMethod, arguments);
       };
