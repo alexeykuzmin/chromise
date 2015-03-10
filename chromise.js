@@ -162,6 +162,8 @@
 
 
   let chromise = wrapGuy.wrapApi(global.chrome);
+
+  // Expose internal stuff.
   chromise._ = {
     ApiCall,
     wrapGuy
