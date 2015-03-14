@@ -6,7 +6,7 @@ Works in Google Chrome 42+ only.
 ## Usage examples
 ~~~js
 // Synchronous call.
-var language = chromise.i18n.getUILanguage().return();
+let language = chromise.i18n.getUILanguage().return();
 console.log(language);  // 'en-US'
 
 // Valid asynchronous call.
