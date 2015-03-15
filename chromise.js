@@ -170,7 +170,13 @@
     wrapGuy
   };
 
-
-  global.chromise = chromise;
+  // Export
+  if (typeof global.define == 'function' && global.define.amd) {
+    global.define(function() {
+      return chromise;
+    });
+  } else {
+    global.chromise = chromise;
+  }
 
 }(window));
