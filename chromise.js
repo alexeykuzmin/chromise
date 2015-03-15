@@ -97,7 +97,9 @@
      * @private
      */
     isApiEvent_(apiEntry) {
-      return apiEntry instanceof global.chrome.Event;
+      var entryPrototype = Object.getPrototypeOf(apiEntry);
+      return (entryPrototype !== Object &&
+          entryPrototype.constructor.name === 'Event');
     },
 
     /**
