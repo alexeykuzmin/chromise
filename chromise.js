@@ -105,7 +105,7 @@
       let wrappedObject = {};
 
       for (let keyName of Object.keys(apiObject)) {
-        wrappedObject[keyName] = wrapGuy.wrapObjectField_(apiObject, keyName);
+        wrapGuy.wrapObjectField_(wrappedObject, apiObject, keyName);
       }
 
       return wrappedObject;
@@ -113,21 +113,24 @@
 
     /**
      * Wraps single object field.
+     * @param {!Object} wrappedObject
      * @param {!Object} apiObject
      * @param {string} keyName
      * @return {?}
      * @private
      */
-    wrapObjectField_(apiObject, keyName) {
+    wrapObjectField_(wrappedObject, apiObject, keyName) {
       let apiEntry = apiObject[keyName];
       let entryType = typeof apiEntry;
+      let value = null;
 
       if (entryType == 'function' && !wrapGuy.isConstructor_(keyName))
-        return wrapGuy.wrapMethod_(apiObject, keyName);
+        value = wrapGuy.wrapMethod_(apiObject, keyName);
       else if (entryType == 'object' && !wrapGuy.isApiEvent_(apiEntry))
-        return wrapGuy.wrapObject_(apiEntry);
-      else
-        return apiEntry;
+        value = wrapGuy.wrapObject_(apiEntry);
+
+      if (value)
+        wrappedObject[keyName] = value;
     },
 
     /**
