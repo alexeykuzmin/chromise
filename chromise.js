@@ -20,17 +20,22 @@
   };
 
 
-  class ApiCall {
+  let apiGuy = {
     /**
-     * @param {Object} context
-     * @param {!Function} method
-     * @param {Arguments} callArguments
+     * @param {!Object} apiObject
+     * @param {string} methodName
+     * @param {Arguments} callArguments Arguments to be passes to method call.
      */
-    constructor(context, method, callArguments) {
-      this.context_ = context;
-      this.method_ = method;
-      this.callArguments_ = callArguments;
-    }
+    callMethod(apiObject, methodName, callArguments) {
+      let originalMethod = apiObject[methodName];
+      let callArgumentsArray = arrayFrom(callArguments);
+
+      return new Promise(function(resolve, reject) {
+        let callback = apiGuy.processResponse_.bind(null, resolve, reject);
+        callArgumentsArray.push(callback);
+        originalMethod.apply(apiObject, callArgumentsArray);
+      });
+    },
 
     /**
      * @param {!Function} callback
@@ -38,7 +43,7 @@
      * @param {...} var_args Response from Extension API.
      * @private
      */
-    static processResponse_(callback, errback, var_args) {
+    processResponse_(callback, errback, var_args) {
       let error = global.chrome.runtime.lastError;
       if (typeof error == 'object') {
         errback(new Error(error.message));
@@ -53,31 +58,7 @@
 
       callback(response);
     }
-
-    /**
-     * Synchronous call.
-     * @return {?}
-     */
-    return() {
-      return this.method_.apply(this.context_, this.callArguments_);
-    }
-
-    /**
-     * Asynchronous call.
-     * @return {Promise}
-     */
-    wait() {
-      let context = this.context_;
-      let method = this.method_;
-      let callArguments = arrayFrom(this.callArguments_);
-
-      return new Promise(function(resolve, reject) {
-        let callback = ApiCall.processResponse_.bind(null, resolve, reject);
-        callArguments.push(callback);
-        method.apply(context, callArguments);
-      });
-    }
-  }
+  };
 
 
   let wrapGuy = {
@@ -142,7 +123,7 @@
       let entryType = typeof apiEntry;
 
       if (entryType == 'function' && !wrapGuy.isConstructor_(keyName))
-        return wrapGuy.wrapMethod_(apiObject, apiEntry);
+        return wrapGuy.wrapMethod_(apiObject, keyName);
       else if (entryType == 'object' && !wrapGuy.isApiEvent_(apiEntry))
         return wrapGuy.wrapObject_(apiEntry);
       else
@@ -152,14 +133,14 @@
     /**
      * Wraps API method.
      * @param {!Object} apiObject
-     * @param {!Function} originalMethod
+     * @param {string} methodName
      * @return {!Function}
      * @private
      */
-    wrapMethod_(apiObject, originalMethod) {
+    wrapMethod_(apiObject, methodName) {
       return function() {
-        return new ApiCall(apiObject, originalMethod, arguments);
-      };
+        return apiGuy.callMethod(apiObject, methodName, arguments);
+      }
     }
   };
 
@@ -168,7 +149,7 @@
 
   // Expose internal stuff.
   chromise._ = {
-    ApiCall,
+    apiGuy,
     wrapGuy
   };
 
