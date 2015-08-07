@@ -1,7 +1,7 @@
-# Chromise 1.0.0
+# Chromise 2.0.0
 
-Promise based wrapper for asynchronous [Chrome Extension API](https://developer.chrome.com/extensions/api_index).
-Works in Google Chrome 42+ only.
+Promise based wrapper for asynchronous [Chrome Extension API](https://developer.chrome.com/extensions/api_index).  
+Works in Google Chrome 45+.
 
 ## Usage examples
 ~~~js

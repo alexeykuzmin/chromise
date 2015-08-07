@@ -3,23 +3,13 @@
  * @fileoverview Promise based wrapper for Chrome Extension API.
  * @see https://developer.chrome.com/extensions/api_index
  * @license MIT
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 
 
 ;(function(global) {
   'use strict';
-
-  /**
-   * Converts |iterable| into Array instance.
-   * @param {*} iterable
-   * @return {Array}
-   */
-  let arrayFrom = function(iterable) {
-    return Array.prototype.slice.call(iterable);
-  };
-
 
   let apiGuy = {
     /**
@@ -29,9 +19,9 @@
      */
     callMethod(apiObject, methodName, callArguments) {
       let originalMethod = apiObject[methodName];
-      let callArgumentsArray = arrayFrom(callArguments);
+      let callArgumentsArray = Array.from(callArguments);
 
-      return new Promise(function(resolve, reject) {
+      return new Promise((resolve, reject) => {
         let callback = apiGuy.processResponse_.bind(null, resolve, reject);
         callArgumentsArray.push(callback);
         originalMethod.apply(apiObject, callArgumentsArray);
@@ -52,7 +42,7 @@
       }
 
       /** @type {*|Array.<*>} */
-      let response = arrayFrom(arguments).slice(2);
+      let response = Array.from(arguments).slice(2);
 
       if (response.length < 2)
         response = response[0];  // undefined if response is empty
@@ -159,9 +149,7 @@
 
   // Export
   if (typeof global.define == 'function' && global.define.amd) {
-    global.define(function() {
-      return chromise;
-    });
+    global.define(() => { chromise; });
   } else {
     global.chromise = chromise;
   }
