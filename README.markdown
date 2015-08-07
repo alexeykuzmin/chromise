@@ -1,4 +1,4 @@
-# Chromise
+# Chromise 1.0.0
 
 Promise based wrapper for asynchronous [Chrome Extension API](https://developer.chrome.com/extensions/api_index).
 Works in Google Chrome 42+ only.
