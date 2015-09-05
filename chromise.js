@@ -147,11 +147,6 @@
     wrapGuy
   };
 
-  // Export
-  if (typeof global.define == 'function' && global.define.amd) {
-    global.define(() => { chromise; });
-  } else {
-    global.chromise = chromise;
-  }
+  global.chromise = chromise;
 
 }(window));
