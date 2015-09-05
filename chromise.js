@@ -141,12 +141,6 @@
 
   let chromise = wrapGuy.wrapApi(global.chrome);
 
-  // Expose internal stuff.
-  chromise._ = {
-    apiGuy,
-    wrapGuy
-  };
-
   global.chromise = chromise;
 
 }(window));
