@@ -3,7 +3,7 @@
  * @fileoverview Promise based wrapper for Chrome Extension API.
  * @see https://developer.chrome.com/extensions/api_index
  * @license MIT
- * @version 2.0.0
+ * @version 3.0.0
  */
 
 
