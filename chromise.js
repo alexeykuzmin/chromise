@@ -31,18 +31,15 @@
     /**
      * @param {!Function} callback
      * @param {!Function} errback
-     * @param {...} var_args Response from Extension API.
+     * @param {!Array} response Response from Extension API.
      * @private
      */
-    processResponse_(callback, errback, var_args) {
+    processResponse_(callback, errback, ...response) {
       let error = global.chrome.runtime.lastError;
       if (typeof error == 'object') {
         errback(new Error(error.message));
         return;
       }
-
-      /** @type {*|Array.<*>} */
-      let response = Array.from(arguments).slice(2);
 
       if (response.length < 2)
         response = response[0];  // undefined if response is empty
