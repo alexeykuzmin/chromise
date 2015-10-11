@@ -51,53 +51,44 @@
 
   let classifier = {
     /**
+     * @param {string} letter
+     * @return {boolean}
+     * @private
+     */
+    isCapitalLetter_(letter) {
+      return letter == letter.toUpperCase();
+    },
+
+    /**
      * @param {string} string
      * @return {boolean}
      * @private
      */
     startsWithCapitalLetter_(string) {
-      let firstLetter = string[0];
-      return firstLetter == firstLetter.toUpperCase();
+      return classifier.isCapitalLetter_(string[0]);
     },
 
     /**
-     * Returns true if |value| looks like constructor,
-     * returns false otherwise.
-     * @param {string} name
-     * @param {?} value
+     * We need to decide should given property be wrapped or not
+     * by its name only. Retrieving its value would cause API initialization,
+     * that can take a long time (dozens of ms).
+     * @param {string} propName
      * @return {boolean}
      */
-    isConstructor(name, value) {
-      return typeof value == 'function' &&
-          classifier.startsWithCapitalLetter_(name);
-    },
-
-    /**
-     * Returns true if |value| looks like enumeration,
-     * returns false otherwise.
-     * @param {string} name
-     * @param {?} value
-     * @return {boolean}
-     */
-    isEnum(name, value) {
-      return typeof value == 'object' &&
-          classifier.startsWithCapitalLetter_(name);
-    },
-
-    /**
-     * Returns true if |value| is an API Event object,
-     * returns false otherwise.
-     * @param {string} name
-     * @param {?} value
-     * @return {boolean}
-     */
-    isApiEventInstance(name, value) {
-      if (typeof value != 'object' || value == null) {
+    propertyNeedsWrapping(propName) {
+      if (classifier.startsWithCapitalLetter_(propName)) {
+        // Either constructor, enum, or constant.
         return false;
       }
 
-      var prototype = Object.getPrototypeOf(value);
-      return (prototype !== Object && prototype.constructor.name == 'Event');
+      if (propName.startsWith('on') &&
+          classifier.isCapitalLetter_(propName[2])) {
+        // Extension API event, e.g. 'onUpdated'.
+        return false;
+      }
+
+      // Must be a namespace or a method.
+      return true;
     }
   };
 
@@ -120,37 +111,54 @@
     wrapObject_(apiObject) {
       let wrappedObject = {};
 
-      for (let keyName of Object.keys(apiObject)) {
-        wrapGuy.wrapObjectField_(wrappedObject, apiObject, keyName);
-      }
+      Object.keys(apiObject)
+          .filter(classifier.propertyNeedsWrapping)
+          .forEach(keyName => {
+            Object.defineProperty(wrappedObject, keyName, {
+              enumerable: true,
+              configurable: true,
+              get() {
+                return wrapGuy.wrapObjectField_(apiObject, keyName);
+              }
+            });
+          });
 
       return wrappedObject;
     },
 
     /**
-     * Wraps single object field.
-     * @param {!Object} wrappedObject
-     * @param {!Object} apiObject
-     * @param {string} keyName
-     * @return {?}
+     * @type {!Map}
      * @private
      */
-    wrapObjectField_(wrappedObject, apiObject, keyName) {
-      let apiEntry = apiObject[keyName];
-      let entryType = typeof apiEntry;
-      let value = null;
+    wrappedFieldsCache_: new Map(),
 
-      if (entryType == 'function' &&
-          !classifier.isConstructor(keyName, apiEntry)) {
-        value = wrapGuy.wrapMethod_(apiObject, keyName);
-      } else if (entryType == 'object' &&
-          !classifier.isApiEventInstance(keyName, apiEntry) &&
-          !classifier.isEnum(keyName, apiEntry)) {
-        value = wrapGuy.wrapObject_(apiEntry);
+    /**
+     * Wraps single object field.
+     * @param {!Object} apiObject
+     * @param {string} keyName
+     * @return {?|undefined}
+     * @private
+     */
+    wrapObjectField_(apiObject, keyName) {
+      let apiEntry = apiObject[keyName];
+
+      if (wrapGuy.wrappedFieldsCache_.has(apiEntry)) {
+        return wrapGuy.wrappedFieldsCache_.get(apiEntry);
       }
 
-      if (value)
-        wrappedObject[keyName] = value;
+      let entryType = typeof apiEntry;
+      let wrappedField;
+      if (entryType == 'function') {
+        wrappedField = wrapGuy.wrapMethod_(apiObject, keyName);
+      }
+      if (entryType == 'object') {
+        wrappedField = wrapGuy.wrapObject_(apiEntry);
+      }
+
+      if (wrappedField) {
+        wrapGuy.wrappedFieldsCache_.set(apiEntry, wrappedField);
+        return wrappedField;
+      }
     },
 
     /**
