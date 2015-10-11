@@ -11,7 +11,7 @@
 ;(function(global) {
   'use strict';
 
-  let apiGuy = {
+  let apiProxy = {
     /**
      * @param {!Object} apiObject
      * @param {string} methodName
@@ -22,7 +22,7 @@
       let callArgumentsArray = Array.from(callArguments);
 
       return new Promise((resolve, reject) => {
-        let callback = apiGuy.processResponse_.bind(null, resolve, reject);
+        let callback = apiProxy.processResponse_.bind(null, resolve, reject);
         callArgumentsArray.push(callback);
         originalMethod.apply(apiObject, callArgumentsArray);
       });
@@ -49,6 +49,59 @@
   };
 
 
+  let classifier = {
+    /**
+     * @param {string} string
+     * @return {boolean}
+     * @private
+     */
+    startsWithCapitalLetter_(string) {
+      let firstLetter = string[0];
+      return firstLetter == firstLetter.toUpperCase();
+    },
+
+    /**
+     * Returns true if |value| looks like constructor,
+     * returns false otherwise.
+     * @param {string} name
+     * @param {?} value
+     * @return {boolean}
+     */
+    isConstructor(name, value) {
+      return typeof value == 'function' &&
+          classifier.startsWithCapitalLetter_(name);
+    },
+
+    /**
+     * Returns true if |value| looks like enumeration,
+     * returns false otherwise.
+     * @param {string} name
+     * @param {?} value
+     * @return {boolean}
+     */
+    isEnum(name, value) {
+      return typeof value == 'object' &&
+          classifier.startsWithCapitalLetter_(name);
+    },
+
+    /**
+     * Returns true if |value| is an API Event object,
+     * returns false otherwise.
+     * @param {string} name
+     * @param {?} value
+     * @return {boolean}
+     */
+    isApiEventInstance(name, value) {
+      if (typeof value != 'object' || value == null) {
+        return false;
+      }
+
+      var prototype = Object.getPrototypeOf(value);
+      return (prototype !== Object && prototype.constructor.name == 'Event');
+    }
+  };
+
+
   let wrapGuy = {
     /**
      * @param {!Object} api API object to wrap.
@@ -56,31 +109,6 @@
      */
     wrapApi(api) {
       return wrapGuy.wrapObject_(api);
-    },
-
-    /**
-     * Returns true if |apiEntry| is an API Event object,
-     * returns false otherwise.
-     * @param {!Object} apiEntry
-     * @return {boolean}
-     * @private
-     */
-    isApiEvent_(apiEntry) {
-      var entryPrototype = Object.getPrototypeOf(apiEntry);
-      return (entryPrototype !== Object &&
-          entryPrototype.constructor.name === 'Event');
-    },
-
-    /**
-     * Returns true if function with given name looks like constructor,
-     * returns false otherwise.
-     * @param {string} functionName
-     * @return {boolean}
-     * @private
-     */
-    isConstructor_(functionName) {
-      let firstLetter = functionName[0];
-      return firstLetter == firstLetter.toUpperCase();
     },
 
     /**
@@ -112,10 +140,14 @@
       let entryType = typeof apiEntry;
       let value = null;
 
-      if (entryType == 'function' && !wrapGuy.isConstructor_(keyName))
+      if (entryType == 'function' &&
+          !classifier.isConstructor(keyName, apiEntry)) {
         value = wrapGuy.wrapMethod_(apiObject, keyName);
-      else if (entryType == 'object' && !wrapGuy.isApiEvent_(apiEntry))
+      } else if (entryType == 'object' &&
+          !classifier.isApiEventInstance(keyName, apiEntry) &&
+          !classifier.isEnum(keyName, apiEntry)) {
         value = wrapGuy.wrapObject_(apiEntry);
+      }
 
       if (value)
         wrappedObject[keyName] = value;
@@ -130,7 +162,7 @@
      */
     wrapMethod_(apiObject, methodName) {
       return function() {
-        return apiGuy.callMethod(apiObject, methodName, arguments);
+        return apiProxy.callMethod(apiObject, methodName, arguments);
       }
     }
   };
@@ -140,4 +172,4 @@
 
   global.chromise = chromise;
 
-}(window));
+}(this));
