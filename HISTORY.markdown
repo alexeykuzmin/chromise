@@ -1,3 +1,8 @@
+## 3.1.0 / 2015-11-18
+ * **Lazy initialization.** First touch of some APIs (e.g. `chrome.extension`)  
+   can be very time consuming. So it's better to avoid it during initialization.
+ * Add **tests**.
+
 ## 3.0.0 / 2015-09-05
 
  * **Doesn't work in Chrome 46 and lower.**

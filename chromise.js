@@ -3,7 +3,7 @@
  * @fileoverview Promise based wrapper for Chrome Extension API.
  * @see https://developer.chrome.com/extensions/api_index
  * @license MIT
- * @version 3.0.0
+ * @version 3.1.0
  */
 
 
@@ -11,7 +11,7 @@
 ;(function(global) {
   'use strict';
 
-  let apiGuy = {
+  let apiProxy = {
     /**
      * @param {!Object} apiObject
      * @param {string} methodName
@@ -22,7 +22,7 @@
       let callArgumentsArray = Array.from(callArguments);
 
       return new Promise((resolve, reject) => {
-        let callback = apiGuy.processResponse_.bind(null, resolve, reject);
+        let callback = apiProxy.processResponse_.bind(null, resolve, reject);
         callArgumentsArray.push(callback);
         originalMethod.apply(apiObject, callArgumentsArray);
       });
@@ -49,6 +49,50 @@
   };
 
 
+  let classifier = {
+    /**
+     * @param {string} letter
+     * @return {boolean}
+     * @private
+     */
+    isCapitalLetter_(letter) {
+      return letter == letter.toUpperCase();
+    },
+
+    /**
+     * @param {string} string
+     * @return {boolean}
+     * @private
+     */
+    startsWithCapitalLetter_(string) {
+      return classifier.isCapitalLetter_(string[0]);
+    },
+
+    /**
+     * We need to decide should given property be wrapped or not
+     * by its name only. Retrieving its value would cause API initialization,
+     * that can take a long time (dozens of ms).
+     * @param {string} propName
+     * @return {boolean}
+     */
+    propertyNeedsWrapping(propName) {
+      if (classifier.startsWithCapitalLetter_(propName)) {
+        // Either constructor, enum, or constant.
+        return false;
+      }
+
+      if (propName.startsWith('on') &&
+          classifier.isCapitalLetter_(propName[2])) {
+        // Extension API event, e.g. 'onUpdated'.
+        return false;
+      }
+
+      // Must be a namespace or a method.
+      return true;
+    }
+  };
+
+
   let wrapGuy = {
     /**
      * @param {!Object} api API object to wrap.
@@ -56,31 +100,6 @@
      */
     wrapApi(api) {
       return wrapGuy.wrapObject_(api);
-    },
-
-    /**
-     * Returns true if |apiEntry| is an API Event object,
-     * returns false otherwise.
-     * @param {!Object} apiEntry
-     * @return {boolean}
-     * @private
-     */
-    isApiEvent_(apiEntry) {
-      var entryPrototype = Object.getPrototypeOf(apiEntry);
-      return (entryPrototype !== Object &&
-          entryPrototype.constructor.name === 'Event');
-    },
-
-    /**
-     * Returns true if function with given name looks like constructor,
-     * returns false otherwise.
-     * @param {string} functionName
-     * @return {boolean}
-     * @private
-     */
-    isConstructor_(functionName) {
-      let firstLetter = functionName[0];
-      return firstLetter == firstLetter.toUpperCase();
     },
 
     /**
@@ -92,33 +111,54 @@
     wrapObject_(apiObject) {
       let wrappedObject = {};
 
-      for (let keyName of Object.keys(apiObject)) {
-        wrapGuy.wrapObjectField_(wrappedObject, apiObject, keyName);
-      }
+      Object.keys(apiObject)
+          .filter(classifier.propertyNeedsWrapping)
+          .forEach(keyName => {
+            Object.defineProperty(wrappedObject, keyName, {
+              enumerable: true,
+              configurable: true,
+              get() {
+                return wrapGuy.wrapObjectField_(apiObject, keyName);
+              }
+            });
+          });
 
       return wrappedObject;
     },
 
     /**
-     * Wraps single object field.
-     * @param {!Object} wrappedObject
-     * @param {!Object} apiObject
-     * @param {string} keyName
-     * @return {?}
+     * @type {!Map}
      * @private
      */
-    wrapObjectField_(wrappedObject, apiObject, keyName) {
+    wrappedFieldsCache_: new Map(),
+
+    /**
+     * Wraps single object field.
+     * @param {!Object} apiObject
+     * @param {string} keyName
+     * @return {?|undefined}
+     * @private
+     */
+    wrapObjectField_(apiObject, keyName) {
       let apiEntry = apiObject[keyName];
+
+      if (wrapGuy.wrappedFieldsCache_.has(apiEntry)) {
+        return wrapGuy.wrappedFieldsCache_.get(apiEntry);
+      }
+
       let entryType = typeof apiEntry;
-      let value = null;
+      let wrappedField;
+      if (entryType == 'function') {
+        wrappedField = wrapGuy.wrapMethod_(apiObject, keyName);
+      }
+      if (entryType == 'object') {
+        wrappedField = wrapGuy.wrapObject_(apiEntry);
+      }
 
-      if (entryType == 'function' && !wrapGuy.isConstructor_(keyName))
-        value = wrapGuy.wrapMethod_(apiObject, keyName);
-      else if (entryType == 'object' && !wrapGuy.isApiEvent_(apiEntry))
-        value = wrapGuy.wrapObject_(apiEntry);
-
-      if (value)
-        wrappedObject[keyName] = value;
+      if (wrappedField) {
+        wrapGuy.wrappedFieldsCache_.set(apiEntry, wrappedField);
+        return wrappedField;
+      }
     },
 
     /**
@@ -130,7 +170,7 @@
      */
     wrapMethod_(apiObject, methodName) {
       return function() {
-        return apiGuy.callMethod(apiObject, methodName, arguments);
+        return apiProxy.callMethod(apiObject, methodName, arguments);
       }
     }
   };
@@ -140,4 +180,4 @@
 
   global.chromise = chromise;
 
-}(window));
+}(this));
